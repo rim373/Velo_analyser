@@ -1,0 +1,76 @@
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+# Build and distribution
+build/
+dist/
+*.egg-info/
+*.egg
+eggs/
+.eggs/
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Test and coverage
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+
+# Data and models (large files)
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.model
+*.weights
+data/
+datasets/
+checkpoints/
+outputs/
+docs/
+weights/
+Test/
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+
