@@ -1,0 +1,147 @@
+# Stage 1 Config - ANTI-OVERFITTING
+# Balanced approach for class imbalance (727:124 = 5.9:1)
+
+model:
+  name: resnet50
+  pretrained: true
+  num_classes: 2
+  dropout: 0.4  # Balanced - not too high!
+
+training:
+  epochs: 60  # Moderate - prevent overfitting
+  batch_size: 16
+  learning_rate: 0.0001  # Moderate for stability
+  weight_decay: 0.01  # Moderate regularization
+  optimizer: adamw
+  scheduler: cosine_warm_restarts
+  
+  # Mixed Precision
+  amp:
+    enabled: true
+  
+  # Gradient Clipping
+  grad_clip:
+    enabled: true
+    max_norm: 1.0
+  
+  # Early Stopping
+  early_stopping:
+    enabled: true
+    patience: 15  # Reasonable patience
+
+data:
+  image_size: 224
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  num_workers: 4
+  pin_memory: true
+  
+  # Data Split
+  split:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+  
+  # STRONG BUT BALANCED Augmentation
+  augmentation:
+    train:
+      enabled: true
+
+      # Geometric - STRONG
+      random_horizontal_flip: 0.5
+      random_vertical_flip: 0.3
+      random_rotation: 20
+      random_affine:
+        degrees: 15
+        translate: [0.15, 0.15]
+        scale: [0.85, 1.15]
+        shear: 10
+
+      # Color - MODERATE
+      color_jitter:
+        brightness: 0.3
+        contrast: 0.3
+        saturation: 0.3
+        hue: 0.15
+
+      # Additional - MODERATE
+      gaussian_blur: 0.2
+      random_erasing: 0.2
+      random_grayscale: 0.1
+
+      # Cutout - MODERATE
+      cutout:
+        enabled: true
+        n_holes: 1
+        length: 30
+    
+    val:
+      enabled: false
+    
+    test:
+      enabled: false
+
+# Loss Configuration - BALANCED
+loss:
+  type: label_smoothing_focal  # Label smoothing for training, focal for validation
+  focal:
+    alpha: 0.25
+    gamma: 2.0  # Moderate
+  label_smoothing:
+    smoothing: 0.1  # Prevent overconfidence
+
+  # MODERATE Class Weights
+  class_weights:
+    enabled: true
+    auto_compute: true
+    # Moderate boost via sampler (1.5x)
+
+# Evaluation
+evaluation:
+  metrics:
+    - accuracy
+    - precision
+    - recall
+    - f1_score
+    - confusion_matrix
+    - roc_auc
+  
+  threshold: 0.4  # LOWERED from 0.5 for better damaged detection
+
+# Logging
+logging:
+  tensorboard: false
+  save_frequency: 5
+  log_frequency: 10
+
+# Checkpointing
+checkpoint:
+  save_dir: outputs/stage1_anti_overfit
+  save_best: true
+  save_last: true
+  monitor: val_f1  # Balanced metric
+  mode: max
+
+device: cuda
+seed: 42
+
+# Visualization
+visualization:
+  enabled: true
+  save_predictions: true
+  save_confusion_matrix: true
+  save_roc_curve: true
+  num_samples: 30  # Increased
+
+# ANTI-OVERFITTING NOTES:
+# Key changes from previous overfitting version:
+# - Dropout: 0.4 (was 0.7 - too high!)
+# - Weight decay: 0.01 (was 0.05 - too strong!)
+# - Damaged boost: 1.5x (was 3x - too much!)
+# - Focal gamma: 2.0 (was 4.0 - too aggressive!)
+# - Learning rate: 0.0001 (was 0.00005 - too low!)
+# - Epochs: 60 (was 150 - too many!)
+# - Threshold: 0.4 (was 0.3 - more balanced)
+# - Augmentation: Strong but balanced
+# - Added: Mixup (0.4) and Label Smoothing (0.1)
+# - Scheduler: Cosine Annealing with Warm Restarts

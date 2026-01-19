@@ -1,0 +1,168 @@
+# DRAEM Configuration
+# Discriminatively Trained Reconstruction Embedding for Anomaly Detection
+
+# Model Configuration
+model:
+  name: draem
+  in_channels: 3
+  out_channels_seg: 2  # Binary segmentation: normal vs anomaly
+
+  # Architecture
+  reconstructive_base_width: 128
+  discriminative_base_width: 64
+
+# Data Configuration
+data:
+  # Training data (intact images only!)
+  intact_dir: data/processed/intact
+
+  # Anomaly source (optional - textures for synthetic anomalies)
+  # If not provided, will use only Perlin noise
+  anomaly_source_path: null  # e.g., data/dtd/images or data/textures
+
+  # Image size
+  image_size: 256
+
+  # Data loading
+  batch_size: 8
+  num_workers: 4
+  pin_memory: true
+
+  # Augmentation (for intact images)
+  augmentation:
+    random_horizontal_flip: 0.5
+    random_vertical_flip: 0.2
+    random_rotation: 15
+    color_jitter:
+      brightness: 0.2
+      contrast: 0.2
+      saturation: 0.2
+      hue: 0.1
+
+# Training Configuration
+training:
+  epochs: 100
+  batch_size: 8
+  lr: 0.0001  # Learning rate
+
+  # Optimizer
+  optimizer: adam
+  weight_decay: 0.00001
+
+  # Learning rate scheduler
+  scheduler:
+    type: multistep
+    milestones: [80, 90]  # Reduce LR at 80% and 90% of epochs
+    gamma: 0.2  # Multiply LR by 0.2
+
+  # Loss weights
+  loss:
+    reconstruction_weight: 1.0
+    ssim_weight: 1.0
+    segmentation_weight: 1.0
+
+    # Focal loss parameters
+    focal_alpha: 0.25
+    focal_gamma: 2.0
+
+# Synthetic Anomaly Generation
+synthetic_anomaly:
+  # Perlin noise parameters
+  min_perlin_scale: 0  # Min scale (2^0 = 1)
+  max_perlin_scale: 6  # Max scale (2^6 = 64)
+
+  # Anomaly types
+  anomaly_types:
+    - texture  # Use texture from anomaly_source_path
+    - noise    # Random noise
+    - brightness  # Brightness changes
+
+  # Morphological operations on masks
+  mask_augmentation:
+    enabled: true
+    operations: [erode, dilate, open, close, none]
+    kernel_sizes: [3, 5, 7]
+
+# Inference Configuration
+inference:
+  # Threshold for anomaly detection
+  threshold:
+    mode: auto  # auto, manual, percentile
+    manual_value: 0.5
+    percentile: 95
+
+  # Post-processing
+  post_processing:
+    gaussian_blur:
+      enabled: true
+      kernel_size: 21
+      sigma: 4
+
+    morphology:
+      enabled: true
+      operation: closing
+      kernel_size: 5
+
+  # Visualization
+  visualization:
+    save_reconstruction: true
+    save_segmentation: true
+    save_overlay: true
+    colormap: jet
+
+# Evaluation
+evaluation:
+  metrics:
+    # Image-level
+    - image_auroc
+    - image_f1
+    - image_precision
+    - image_recall
+
+    # Pixel-level
+    - pixel_auroc
+    - pixel_f1
+    - pixel_iou
+
+    # Segmentation
+    - dice_score
+    - pro_score  # Per-Region-Overlap
+
+# Checkpointing
+checkpoint:
+  save_dir: checkpoints/draem
+  save_interval: 10  # Save every N epochs
+  save_best: true  # Save best model based on validation loss
+
+  # What to save
+  save_model: true
+  save_optimizer: true
+  save_scheduler: true
+
+# Logging
+logging:
+  tensorboard: true
+  log_dir: logs/draem
+  log_interval: 10  # Log every N batches
+
+  # Save samples during training
+  save_samples:
+    enabled: true
+    interval: 5  # Save every N epochs
+    num_samples: 10
+
+# Device and Performance
+device: cuda  # cuda or cpu
+seed: 42
+deterministic: false  # Set to true for reproducible results (slower)
+
+# Mixed Precision Training
+amp:
+  enabled: true  # Use Automatic Mixed Precision
+  opt_level: O1  # O0, O1, O2, O3
+
+# Memory Management
+memory:
+  clear_cache: true
+  pin_memory: true
+  prefetch_factor: 2
